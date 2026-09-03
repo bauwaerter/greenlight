@@ -14,6 +14,7 @@ function contextFor(volunteerId: string, openingId: string): EvalContext {
     policy: DEFAULT_POLICY,
     volunteer: buildVolunteerContext(dataset, volunteerId, DEFAULT_POLICY),
     target: resolveTarget(dataset, openingId),
+    audience: 'VOLUNTEER',
   };
 }
 

@@ -164,3 +164,62 @@ describe('unknown identifiers', () => {
     expect(() => checker.checkEligibility('vol-001', 'open-nope')).toThrow(UnknownRecordError);
   });
 });
+
+describe('staff audience', () => {
+  const staff = createChecker(dataset, DEFAULT_POLICY, 'STAFF');
+
+  it('emits GROUP_RESTRICTED where the volunteer sees nothing', () => {
+    // OBSERVATIONS.md §1.2. Same evaluation, different audience: a coordinator has
+    // to be able to explain the refusal the volunteer was not given.
+    expect(checker.checkEligibility('vol-002', 'open-kitchen-sat-cleaner')).toEqual({
+      status: 'BLOCKED',
+      reasons: [],
+    });
+    // vol-002 is the one volunteer holding a current waiver-kitchen signature, so
+    // the group restriction is the *only* thing standing in their way.
+    expect(staff.checkEligibility('vol-002', 'open-kitchen-sat-cleaner')).toEqual({
+      status: 'BLOCKED',
+      reasons: ['GROUP_RESTRICTED'],
+    });
+  });
+
+  it('reports the other applicable reasons alongside it', () => {
+    // vol-005 is in the wrong group AND has not signed waiver-kitchen. The volunteer
+    // is told neither; staff are told both.
+    expect(staff.checkEligibility('vol-005', 'open-kitchen-sat-cleaner').reasons).toEqual([
+      'GROUP_RESTRICTED',
+      'WAIVER_REQUIRED',
+    ]);
+  });
+
+  it('changes nothing for an unrestricted opportunity', () => {
+    for (const volunteerId of dataset.raw.volunteers.map((v) => v.id)) {
+      for (const opportunityId of ['opp-meals', 'opp-warehouse', 'opp-youth']) {
+        expect(staff.checkOpportunity(volunteerId, opportunityId)).toEqual(
+          checker.checkOpportunity(volunteerId, opportunityId),
+        );
+      }
+    }
+  });
+
+  it('defaults to the volunteer audience', () => {
+    expect(createChecker(dataset).checkEligibility('vol-002', 'open-kitchen-sat-cleaner')).toEqual(
+      createChecker(dataset, DEFAULT_POLICY, 'VOLUNTEER').checkEligibility(
+        'vol-002',
+        'open-kitchen-sat-cleaner',
+      ),
+    );
+  });
+
+  it('never emits GROUP_RESTRICTED to a volunteer for any opening in the fixture', () => {
+    // The guarantee that matters: the volunteer path returns before any rule runs,
+    // so the code cannot leak through a future rule change.
+    for (const volunteer of dataset.raw.volunteers) {
+      for (const opening of dataset.raw.openings) {
+        expect(
+          checker.checkEligibility(volunteer.id, opening.id).reasons,
+        ).not.toContain('GROUP_RESTRICTED');
+      }
+    }
+  });
+});
