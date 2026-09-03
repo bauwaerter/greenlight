@@ -1,6 +1,6 @@
 import type { Dataset } from './dataset.js';
 import type { PolicyConfig } from './policy.js';
-import type { Opening, Opportunity, Shift, SignupState, Volunteer } from './types.js';
+import type { Audience, Opening, Opportunity, Shift, SignupState, Volunteer } from './types.js';
 
 /** The opening under examination, with its shift and opportunity resolved. */
 export interface Target {
@@ -30,6 +30,7 @@ export interface EvalContext {
   policy: PolicyConfig;
   volunteer: VolunteerContext;
   target: Target;
+  audience: Audience;
 }
 
 export function resolveTarget(dataset: Dataset, openingId: string): Target {

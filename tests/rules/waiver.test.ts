@@ -21,6 +21,7 @@ function contextFor(
     policy,
     volunteer: buildVolunteerContext(data, volunteerId, policy),
     target: resolveTarget(data, openingId),
+    audience: 'VOLUNTEER',
   };
 }
 

@@ -91,6 +91,47 @@ interactions they miss.
 ## Run the checker
 
 ```bash
+npm run check -- --help          # every mode and flag
+npm run check -- --list          # volunteer ids and names
+```
+
+**Browse one volunteer's whole catalog.** Every opening, whether they can take it, and why
+not — the readable surface:
+
+```bash
+npm run check -- --report vol-006
+npm run check -- --report --all
+```
+
+```
+  Fern Okonjo  (vol-006)
+  volunteer view · 0 eligible, 0 waitlist, 11 blocked
+
+  Weekly Meal Service — Indianapolis
+    x Monday Lunch Prep · Prep Cook       BLOCKED   waiver required
+    x Tuesday Lunch Service · Server      BLOCKED   already signed up, waiver required
+    x Wednesday Lunch Service · Server    BLOCKED   shift not published, waiver required
+    ...
+
+  Warehouse Sort and Load — Denver
+    x Monday Sort · Loader                BLOCKED   disallowed qualification
+
+  Kitchen Deep Clean — Indianapolis
+    x Saturday Deep Clean · Cleaner       BLOCKED   (no reason given)
+```
+
+That last row is `SPEC.md` rule 5: group membership is confidential, so the volunteer is
+told nothing. `--staff` shows the same evaluation as a coordinator sees it, and is the only
+way `GROUP_RESTRICTED` is ever emitted:
+
+```bash
+npm run check -- --report --staff vol-005
+#   x Saturday Deep Clean · Cleaner   BLOCKED   group restricted, waiver required
+```
+
+**Single answers, as JSON:**
+
+```bash
 npm run check -- vol-001 open-meals-mon-pm-server
 npm run check -- --opportunity vol-001 opp-meals
 npm run check -- --literal-disallowed vol-006 open-warehouse-mon-loader
@@ -104,6 +145,8 @@ npm run check -- --literal-disallowed vol-006 open-warehouse-mon-loader
 | `src/rules/` | One file per rule in `SPEC.md`; `rules/index.ts` is the registry |
 | `src/policy.ts` | Every behaviour the spec left ambiguous, with the default chosen |
 | `src/context.ts` | Per-volunteer facts resolved once and reused across openings |
+| `src/report.ts` | One volunteer's whole catalog as data — no rendering decisions |
+| `src/render.ts` | That data as plain text — no lookups, no rules |
 | `OBSERVATIONS.md` | What I found wrong in the spec and how I resolved each one |
 | `DECISIONS.md` | The short version, for a reader with ten minutes |
 

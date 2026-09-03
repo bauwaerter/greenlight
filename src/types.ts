@@ -14,6 +14,16 @@ export type ReasonCode =
 
 export type EligibilityStatus = 'ELIGIBLE' | 'WAITLIST' | 'BLOCKED';
 
+/**
+ * Who the answer is being produced for.
+ *
+ * 'VOLUNTEER' is the contract SPEC.md specifies and the default everywhere: a
+ * group-restricted opening comes back BLOCKED with no reasons, and no rule is even
+ * consulted. 'STAFF' is for a coordinator who has to explain the refusal — the same
+ * evaluation, with the withheld reason kept. See OBSERVATIONS.md §1.2.
+ */
+export type Audience = 'VOLUNTEER' | 'STAFF';
+
 export interface EligibilityResult {
   status: EligibilityStatus;
   /** Deduplicated and sorted ascending. May be empty for BLOCKED — see OBSERVATIONS.md §1.2. */

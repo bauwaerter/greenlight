@@ -4,13 +4,15 @@ import type { EvalContext } from '../context.js';
  * SPEC.md rule 5, and OBSERVATIONS.md §1.2.
  *
  * This is a visibility gate, not a rule. It returns a boolean rather than a reason
- * code because rule 5 requires BLOCKED with an EMPTY reasons list — group membership
- * is confidential and must not be disclosed. GROUP_RESTRICTED therefore appears in
- * the SPEC.md reason table but is never emitted.
+ * code because whether the restriction becomes a reason depends on who is asking:
+ * rule 5 requires BLOCKED with an EMPTY reasons list for a volunteer, because group
+ * membership is confidential. Staff see GROUP_RESTRICTED. Both come from this one
+ * boolean; see evaluate() in eligibility.ts.
  *
- * It must short-circuit the whole evaluation. If it did not, a restricted volunteer
- * would see the other reasons, fix them, and still be blocked with no explanation —
- * exactly the outcome SPEC.md calls "the worst possible outcome for us".
+ * For a volunteer it must short-circuit the whole evaluation. If it did not, a
+ * restricted volunteer would see the other reasons, fix them, and still be blocked
+ * with no explanation — exactly the outcome SPEC.md calls "the worst possible
+ * outcome for us".
  *
  * The real fix is upstream: these openings should be filtered out of browse entirely
  * so the question is never asked. See OBSERVATIONS.md §1.2.
