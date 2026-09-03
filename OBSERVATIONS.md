@@ -5,6 +5,10 @@ Findings are ordered by how much they change what gets built. Each one states th
 problem, what it costs if we guess wrong, how I intend to resolve it, and what I would
 change about the spec itself.
 
+Sections 1 to 4 are about the function the spec asks for. Section 5 is about what that
+function cannot do on its own, and is the part I would want on a backlog rather than
+resolved in this exercise.
+
 Every claim about the fixture data in this document was checked against
 `fixtures/fixtures.json` rather than read off the prose. Where I say "no case covers
 this," I mean I enumerated `fixtures/cases.json` and confirmed it.
@@ -310,7 +314,149 @@ product decides to surface it, rather than widening the contract on my own initi
 
 ---
 
-## 5. Questions I would ask
+## 5. The check cannot be the enforcement
+
+Everything above treats `checkEligibility` as a question about a fixed world. It isn't one.
+The spec asks "can this volunteer sign up," and that sentence hides two different questions:
+
+- **Would they be allowed to?** — what a browse page needs, and what a pure function over a
+  snapshot can answer.
+- **May they, right now, to the exclusion of everyone else asking?** — what the signup
+  button needs, and what no read-only function can answer at all.
+
+The spec never distinguishes them, so it is possible to build exactly what was asked for
+and still ship a system that over-subscribes shifts. Nothing below is a defect in the
+function as specified; they are defects in *believing the function is a gate*.
+
+### 5.1 Two volunteers can both be told yes for the same last place
+
+Three of four places are taken. Two volunteers load the page, both are told `ELIGIBLE`, both
+press sign up. Both writes succeed and the opening holds five people. This is the ordinary
+time-of-check-to-time-of-use race, and it needs no unusual timing — a browse page and a
+click is seconds of gap.
+
+**Consequence.** A kitchen shift turns up one station short of the people standing in it.
+For the warehouse it is worse: `maxVolunteers` on a dock role is a staffing ratio, and
+exceeding it is the kind of thing that is only noticed after somebody is hurt. Nobody finds
+out until the day, because every individual answer was correct when it was given.
+
+**What it needs.** The signup write re-runs the capacity check inside a transaction holding
+a lock on the opening row, or a constraint that makes over-subscription unrepresentable.
+`checkEligibility` stays advisory and the write path becomes authoritative. They can share
+the same rule functions — that is a good reason for the rules to be pure and free of I/O,
+which they are.
+
+### 5.2 The schedule conflict race is harder than the capacity race
+
+Capacity is an invariant over one opening, so a row lock on that opening closes it. A
+schedule conflict is an invariant over *two different openings*, usually under different
+opportunities. Locking the opening being signed up for does not help: two concurrent
+signups to two different overlapping shifts each read a world in which the other does not
+exist, and both are correct.
+
+**Consequence.** A volunteer is confirmed for two shifts at once. Two coordinators each
+believe they have someone who will not arrive, and the volunteer discovers the clash when
+it is too late to backfill either.
+
+**What it needs.** The lock belongs on the *volunteer*, not the opening — or serializable
+isolation, or a database constraint over the interval. Postgres can express the last one
+directly: an exclusion constraint over `(volunteer_id WITH =, during WITH &&)` makes
+double-booking unrepresentable rather than merely checked. That is the version I would
+argue for, because it survives a future code path that forgets to check.
+
+### 5.3 Double submission makes `ALREADY_SIGNED_UP` advisory too
+
+A double-clicked button sends two requests. Both read a world in which the volunteer is not
+signed up, and both insert. The fixture's `signups` records carry no id and express no
+natural key, so nothing prevents the duplicate.
+
+**Consequence.** Cosmetically a volunteer appears twice on a roster; substantively they
+consume two of the places others were competing for, which turns a UI stutter into someone
+else's rejection.
+
+**What it needs.** A unique constraint on `(volunteerId, openingId)`. That demotes the
+`ALREADY_SIGNED_UP` check to what it should be — a way to give a clear answer early, not
+the thing keeping the invariant.
+
+### 5.4 The waitlist has no order
+
+`signups` carries `volunteerId`, `openingId`, and `state`. There is no timestamp, no
+sequence, and no position. Rule 2 can therefore say a waitlist place *exists* but nothing in
+the data can say *whose* it is.
+
+**Consequence.** When a confirmed volunteer cancels, there is no defined answer to who gets
+promoted, so whatever the implementation happens to do becomes the policy — probably
+insertion order in a table, which is not a promise anyone made. Volunteers who waited
+longest have no reason to believe they were treated fairly, and no coordinator can explain
+the outcome. Concurrent cancellations make it worse: two promotions racing over one freed
+place can confirm two people or, if written defensively, neither.
+
+**What it needs.** A position or a created-at on the signup, and an explicit policy — first
+come first served, or something else the product actually wants. This is a missing field
+rather than a race, but it is invisible until you ask the concurrency question.
+
+### 5.5 Eligibility drifts after signup, and nothing re-checks it
+
+The check happens once. Every input it depends on is mutable afterwards:
+
+| What changes | What it silently invalidates |
+| --- | --- |
+| A waiver's `currentVersion` is bumped | Every existing signature, on every confirmed signup |
+| A qualification lapses or is revoked | Any `HAS_ANY` / `HAS_ALL` rule that depended on it |
+| A qualification is *added* | A `DOES_NOT_HAVE_ALL` exclusion that should now fire |
+| A volunteer leaves a group | Confirmed places on restricted opportunities |
+| An opportunity gains a rule | Everyone already confirmed under the old rules |
+| A shift is rescheduled | Previously-compatible signups that now overlap |
+
+**Consequence.** The roster quietly fills with people who would not be allowed to sign up
+today. The `DOES_NOT_HAVE_ALL` case is the one that matters: a lifting restriction added to
+someone's record on Tuesday does not take them off Saturday's dock shift, because nothing
+ever asks again. That is the same safety failure §1.1 is about, arriving by a different
+route — and resolving §1.1 correctly does nothing to prevent it.
+
+**What it needs.** Re-validation, either when the underlying record changes or as a sweep
+before each shift, plus a product decision about what to *do* with a volunteer who is no
+longer eligible: revoke the place, or flag it to a coordinator to handle as a conversation.
+The second is almost certainly right for a nonprofit, and it is not an engineering call.
+
+### 5.6 The browse answer is stale before it is rendered
+
+`checkOpportunity` answers for the whole catalog at one instant. By the time the page paints
+and the volunteer decides, capacity may have moved. A volunteer shown `ELIGIBLE` and then
+refused on submit needs an explanation that does not read as a bug.
+
+This also bounds what is cacheable, and the split falls along a line the code already has.
+The per-volunteer half of the context — qualifications, waivers, group membership, committed
+shifts — changes rarely and can be cached until that volunteer's record changes. The
+capacity half cannot be cached at all. If the browse page ever becomes a performance
+problem, that is the seam to cut along.
+
+Relatedly, the bulk API reads openings one at a time. Over the in-memory fixture that is
+consistent by construction; over a database it is several queries that may observe different
+states, so a browse page could show one opening full and its neighbour open as of two
+different instants. It needs a single consistent snapshot, not N independent reads.
+
+### 5.7 Nothing records why a volunteer was refused
+
+The result is returned and discarded. If a coordinator is asked next month why someone was
+blocked, or if the rules have changed since — and §1.1 says they will — the answer cannot be
+reconstructed. For `DISALLOWED_QUALIFICATION` the inputs are effectively age and medical
+information, so there is a retention question attached to logging it as well as a reason to.
+
+**What it needs.** A decision log stamped with the rule configuration in force at the time,
+and a retention policy written by someone who has thought about the second half of that
+sentence.
+
+### What I would change about the spec
+
+State plainly whether `checkEligibility` is advisory or authoritative. Everything in this
+section follows from the spec not saying, and the answer changes what the write path has to
+do rather than what this function has to do. Then: add an ordering field to `signups`, and
+say what happens to a confirmed signup when the facts underneath it change.
+
+---
+
+## 6. Questions I would ask
 
 In the order I would want them answered:
 
@@ -326,6 +472,11 @@ In the order I would want them answered:
 4. Should a volunteer blocked only by a recoverable reason still be told a waitlist place
    exists?
 5. Is `rule-youth-1`'s empty qualification list intentional?
+6. Is `checkEligibility` advisory or authoritative — does anything else enforce capacity at
+   write time? See §5. If nothing does, that is a larger problem than either contradiction
+   in §1.
+7. When a volunteer's qualifications, waivers, or group membership change *after* they are
+   confirmed for a shift, should the place be revoked, flagged, or left alone?
 
 ---
 
