@@ -72,9 +72,9 @@ why they could not sign up, and calls telling someone "you can't sign up" with n
 explanation "the worst possible outcome for us." Rule 5 then requires exactly that: a
 volunteer outside a restricted group gets `BLOCKED` with an empty `reasons` list.
 
-Compounding it, the reason code table defines `GROUP_RESTRICTED` — a code that rule 5
-makes it impossible to ever emit. Either the rule is wrong or the code should not be in
-the table.
+Compounding it, the reason code table defines `GROUP_RESTRICTED` — a code that rule 5, read
+as written, makes it impossible to ever emit. Either the rule is wrong or the code should
+not be in the table.
 
 **What it costs to get wrong.** There is a worse failure hiding underneath. If the group
 check returns no reason but the other checks still report theirs, a volunteer sees
@@ -84,22 +84,34 @@ following the spec. It also wastes the volunteer's time and the coordinator's, a
 the kind of thing that generates a support ticket nobody can answer without disclosing the
 confidential thing.
 
-**How I intend to resolve it.** Treat the group restriction as a visibility gate that runs
-first and short-circuits: if the volunteer is not in a listed group, return `BLOCKED` with
-empty reasons and evaluate nothing else. This honours rule 5 literally and avoids the
+**How I resolved it.** The group restriction is a visibility gate that runs first and
+short-circuits: if the volunteer is not in a listed group, return `BLOCKED` with empty
+reasons and evaluate nothing else. This honours rule 5 literally and avoids the
 partial-information trap, at the cost of the volunteer learning nothing — which is what
 rule 5 asks for.
 
-**What I would change about the spec.** The real fix is upstream of this function.
-A restricted opening should never be shown to an ineligible volunteer in the first place,
-so the browse page filters it out and the question is never asked. I would also press on
-the confidentiality claim: emitting `GROUP_RESTRICTED` discloses that *the opportunity is
-restricted*, which is a property of the opportunity, not that any particular volunteer is
-or is not in any particular group. Those are different disclosures and the spec conflates
-them. If the product is willing to say "this opportunity is limited to specific groups —
-contact your coordinator," the volunteer gets an actionable next step and no membership is
-revealed. That is a product decision, not an engineering one, which is why I am flagging
-it rather than deciding it.
+Returning *before any rule runs*, rather than computing the reasons and stripping the
+sensitive one, is deliberate. It makes the guarantee structural: there is no populated
+reason set in scope on the volunteer path for a future rule to leak through. A redaction
+step would need to be remembered every time someone adds a rule.
+
+That leaves the coordinator with the same problem the volunteer has, so the checker takes
+an **audience**. `VOLUNTEER` is the default and the contract SPEC.md specifies. `STAFF` is
+the same evaluation with the withheld reason kept, for someone who has to explain the
+refusal — and it is the only path on which `GROUP_RESTRICTED` is ever emitted, which is how
+a code the spec defines but forbids finally has a use. `npm run check -- --report --staff
+vol-005` shows the difference against the same volunteer.
+
+**What I would change about the spec.** The audience split is a mitigation, not the fix.
+The real fix is upstream of this function: a restricted opening should never be shown to
+an ineligible volunteer at all, so the browse page filters it out and the question is
+never asked. I would also press on the confidentiality claim: emitting `GROUP_RESTRICTED`
+discloses that *the opportunity is restricted*, which is a property of the opportunity,
+not that any particular volunteer is or is not in any particular group. Those are
+different disclosures and the spec conflates them. If the product is willing to say "this
+opportunity is limited to specific groups — contact your coordinator," the volunteer gets
+an actionable next step and no membership is revealed. That is a product decision, not an
+engineering one, which is why I am flagging it rather than deciding it.
 
 ---
 
@@ -307,7 +319,8 @@ In the order I would want them answered:
    volunteer safety.
 2. Is the confidentiality requirement in rule 5 about concealing *group membership*, or
    about concealing *that a restriction exists*? The answer decides whether
-   `GROUP_RESTRICTED` is a live code or should be deleted from the table.
+   `GROUP_RESTRICTED` becomes a volunteer-facing code or stays staff-only, as I have
+   built it.
 3. Do any organizations operate across timezones today? If so, 3.1 is a live defect rather
    than a latent one and should be scheduled.
 4. Should a volunteer blocked only by a recoverable reason still be told a waitlist place

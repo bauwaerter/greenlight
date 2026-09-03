@@ -32,6 +32,16 @@ I considered a data-driven engine — rules as configuration, per organization. 
 this goes if eligibility becomes customer-configurable. For four rules it's more machinery
 than problem, and it would have hidden the contradictions rather than exposed them.
 
+**A report, not a UI.** The spec rules out a UI, and I agree, so `--report` prints one
+volunteer's whole catalog as text rather than opening a terminal app. The reasoning is that
+a UI's value is invisible in what you actually read — a zip, a diff, a repo. Text pastes
+into this document, pipes through `grep`, and gets asserted on in tests. `src/report.ts`
+builds the data and `src/render.ts` draws it, so the presentation is testable with no
+terminal; a test checks row by row that the report agrees with `checkEligibility` for every
+volunteer, because a second implementation of the rules hiding in the display layer is
+exactly the failure worth guarding against. `--staff` exists because one flag makes the
+hardest decision in the spec visible instead of merely argued.
+
 ## Problems I found in the spec
 
 **`DOES_NOT_HAVE_ALL` contradicts its own worked example.** The table says a volunteer
@@ -53,11 +63,19 @@ while other checks report theirs, a volunteer fixes what they were told and is *
 blocked with nothing new. That's the spec's own worst case, reached by following the spec.
 So the gate short-circuits.
 
-**The real fix is upstream** — a restricted opening shouldn't appear in browse at all. I'd
-also push back on the framing: "this opportunity is limited to specific groups" discloses a
-property of the opportunity, not anyone's membership. The spec treats those as one thing.
-If we can say the first, the volunteer gets an actionable next step. That's a product call,
-so I flagged it rather than deciding it.
+Returning *before any rule runs*, rather than computing reasons and stripping the sensitive
+one, is the point: the guarantee is structural, not something a future rule can forget. But
+that leaves a coordinator unable to explain the refusal either, so the checker takes an
+**audience**. `VOLUNTEER` is the default and the spec's contract; `STAFF` is the same
+evaluation with the withheld reason kept, and is the only path that ever emits
+`GROUP_RESTRICTED`. `npm run check -- --report --staff vol-005` shows both against one
+volunteer.
+
+**The real fix is still upstream** — a restricted opening shouldn't appear in browse at all.
+I'd also push back on the framing: "this opportunity is limited to specific groups"
+discloses a property of the opportunity, not anyone's membership. The spec treats those as
+one thing. If we can say the first, the volunteer gets an actionable next step. That's a
+product call, so I flagged it rather than deciding it.
 
 **Timestamps are timezone-naive across two timezones.** Shifts carry no offset but
 opportunities span Indianapolis and Denver. We will block volunteers from shifts they could
