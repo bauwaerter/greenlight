@@ -46,8 +46,18 @@ export function createChecker(
     checkEligibility(volunteerId, openingId) {
       return evaluate(contextFor(buildVolunteerContext(dataset, volunteerId, policy), openingId));
     },
-    checkOpportunity() {
-      throw new Error('not implemented');
+    checkOpportunity(volunteerId, opportunityId) {
+      // The volunteer's qualifications, groups, waivers and committed shifts do not
+      // change from one opening to the next, so they are resolved exactly once.
+      // SPEC.md "Nice to have": the browse page renders a whole opportunity at a time.
+      const volunteer = buildVolunteerContext(dataset, volunteerId, policy);
+      const results: Record<string, EligibilityResult> = {};
+
+      for (const opening of dataset.openingsForOpportunity(opportunityId)) {
+        results[opening.id] = evaluate(contextFor(volunteer, opening.id));
+      }
+
+      return results;
     },
   };
 }
