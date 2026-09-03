@@ -32,6 +32,13 @@ I considered a data-driven engine — rules as configuration, per organization. 
 this goes if eligibility becomes customer-configurable. For four rules it's more machinery
 than problem, and it would have hidden the contradictions rather than exposed them.
 
+**The tests are checked, not assumed.** A count proves nothing, so I injected twelve
+deliberate bugs and re-ran the suite: off-by-ones on both capacity boundaries, an inverted
+`HAS_ANY`, the exclusion semantics silently flipped to the literal reading, the
+self-conflict guard removed, `WAITLIST` overriding blocking reasons, the group reason
+leaking to a volunteer. All twelve failed a test. Branch coverage measured 100% across the
+rule files. That is the number I would want to be judged on.
+
 **A report, not a UI.** The spec rules out a UI, and I agree, so `--report` prints one
 volunteer's whole catalog as text rather than opening a terminal app. The reasoning is that
 a UI's value is invisible in what you actually read — a zip, a diff, a repo. Text pastes
@@ -117,10 +124,17 @@ learn a waitlist place exists? And is `rule-youth-1`'s empty list intentional?
 ## What I deliberately did not build
 
 A travel-time buffer (needs a policy answer — how long, per what). A past-shift rule
-(there's no reason code, and inventing one is inventing product behaviour). Per-qualification
-detail in the reasons — `MISSING_QUALIFICATION` doesn't say which, which limits the spec's
-own goal, but widening the contract unilaterally seemed worse than flagging it. The detail
-is carried internally already.
+(there's no reason code, and inventing one is inventing product behaviour).
+Per-qualification detail in the reasons — `MISSING_QUALIFICATION` doesn't say which, which
+limits the spec's own goal, but widening the contract unilaterally seemed worse than
+flagging it. The detail is carried internally already.
+
+**And robustness the fixture doesn't need.** The CLI ignores unknown flags rather than
+rejecting them, so a typo'd `--stff` quietly gives the volunteer view instead of the staff
+one; and loading the fixture is an unchecked cast, so a malformed file fails with a poor
+message rather than a useful one. Both are real, both are cheap, and both defend against
+inputs this exercise doesn't have. Same for CI, a linter, and a coverage gate — that's
+infrastructure for a repository expecting a second commit.
 
 ## What I'd do with three more hours
 
