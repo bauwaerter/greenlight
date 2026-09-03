@@ -82,6 +82,24 @@ opportunities span Indianapolis and Denver. We will block volunteers from shifts
 work and clear them for shifts that collide — by up to a working day, with a
 plausible-looking answer every time. Documented, not fixed: it needs a data-model change.
 
+**The check can't be the thing that enforces the rule.** The spec asks "can this volunteer
+sign up," which hides two questions: *would they be allowed to* — a browse page, which a
+pure function can answer — and *may they right now, to the exclusion of everyone else
+asking*, which nothing read-only can. Three of four places taken, two people both told
+`ELIGIBLE`, both press the button, opening holds five. On a warehouse dock `maxVolunteers`
+is a staffing ratio, so that one is a safety failure nobody notices until the day.
+
+Schedule conflicts are harder still: the invariant spans two openings, so locking the one
+being signed up for doesn't help. And the check runs *once* while everything under it keeps
+moving — a lifting restriction added on Tuesday doesn't take anyone off Saturday's dock
+shift, because nothing asks again. Same failure as `DOES_NOT_HAVE_ALL`, by a route that
+fixing `DOES_NOT_HAVE_ALL` doesn't close.
+
+Not fixable here; there's no store and no write path to fix it in. But the spec should say
+whether this function is advisory or authoritative, and if nothing enforces capacity at
+write time that is a bigger problem than either contradiction above. `OBSERVATIONS.md` §5
+has the rest, including a waitlist with no ordering field at all.
+
 **The supplied cases don't reach the disputed rules.** They never exercise
 `DISALLOWED_QUALIFICATION`, `GROUP_RESTRICTED`, or `WAITLIST_FULL`. Passing all twelve
 proves little about what's actually in dispute, so my tests target the gaps.
@@ -110,6 +128,10 @@ is carried internally already.
 2. Say *which* qualification is missing. Cheapest move toward the stated goal.
 3. Filter restricted openings out of browse, which removes the need for the silent block.
 4. Property-based tests on the interval logic.
+
+Bigger than three hours, and the first thing I'd raise in planning: making the write path
+authoritative (`OBSERVATIONS.md` §5). The rules are pure and do no I/O precisely so they can
+be re-run inside the write transaction rather than reimplemented beside it.
 
 ## How I used AI
 
