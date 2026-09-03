@@ -98,9 +98,18 @@ is a staffing ratio, so that one is a safety failure nobody notices until the da
 
 Schedule conflicts are harder still: the invariant spans two openings, so locking the one
 being signed up for doesn't help. And the check runs *once* while everything under it keeps
-moving — a lifting restriction added on Tuesday doesn't take anyone off Saturday's dock
-shift, because nothing asks again. Same failure as `DOES_NOT_HAVE_ALL`, by a route that
-fixing `DOES_NOT_HAVE_ALL` doesn't close.
+moving — including when a coordinator edits an opportunity that already has volunteers on
+it. Reschedule a shift and confirmed volunteers are double-booked; add a `DOES_NOT_HAVE_ALL`
+rule and nobody comes off Saturday's dock shift, because nothing asks again. Same failure as
+`DOES_NOT_HAVE_ALL` itself, by a route that fixing `DOES_NOT_HAVE_ALL` doesn't close.
+
+Re-running `checkEligibility` over existing signups is not the fix — it would revoke
+everybody, since they are all `ALREADY_SIGNED_UP` and the last ones in are all
+`AT_CAPACITY`. The codes split into *acquisition* (getting a place) and *continuing*
+(deserving to keep it), and that split falls entirely on one rule: `capacityRule` emits all
+three acquisition codes and every other rule emits continuing ones. So re-validation is a
+scope tag on one registry entry plus a second entry point, not a second implementation of
+the rules. `OBSERVATIONS.md` §5.5 has the edit-time check I would actually build first.
 
 Not fixable here; there's no store and no write path to fix it in. But the spec should say
 whether this function is advisory or authoritative, and if nothing enforces capacity at

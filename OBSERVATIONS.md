@@ -395,9 +395,13 @@ place can confirm two people or, if written defensively, neither.
 come first served, or something else the product actually wants. This is a missing field
 rather than a race, but it is invisible until you ask the concurrency question.
 
-### 5.5 Eligibility drifts after signup, and nothing re-checks it
+### 5.5 Editing an opportunity silently invalidates the volunteers already on it
 
-The check happens once. Every input it depends on is mutable afterwards:
+The check happens once, at signup. Nothing re-runs it, and everything it depends on stays
+editable — including by a coordinator in an admin screen who has no way to see what they are
+about to break.
+
+Two kinds of change do it. A volunteer's own record drifts:
 
 | What changes | What it silently invalidates |
 | --- | --- |
@@ -405,19 +409,70 @@ The check happens once. Every input it depends on is mutable afterwards:
 | A qualification lapses or is revoked | Any `HAS_ANY` / `HAS_ALL` rule that depended on it |
 | A qualification is *added* | A `DOES_NOT_HAVE_ALL` exclusion that should now fire |
 | A volunteer leaves a group | Confirmed places on restricted opportunities |
-| An opportunity gains a rule | Everyone already confirmed under the old rules |
-| A shift is rescheduled | Previously-compatible signups that now overlap |
+
+And the opportunity itself is edited underneath them:
+
+| The edit | What it does to volunteers already confirmed |
+| --- | --- |
+| A shift is rescheduled | Creates overlaps with their other shifts — and they agreed to a time that no longer exists |
+| A qualification rule is added or activated | They may no longer qualify; if it is a `DOES_NOT_HAVE_ALL`, they may now be excluded on safety grounds |
+| A rule is removed or deactivated | Nobody is wrong any more, but nobody blocked under the old rule is told, and no waitlist is reconsidered |
+| `requiredWaiverId` is set where there was none | Every confirmed volunteer is now unwaivered |
+| `restrictedToGroupIds` is added | Confirmed volunteers outside the group must come off — and §1.2 says we cannot tell them why |
+| `maxVolunteers` is lowered below the confirmed count | The opening is over-subscribed by an edit rather than a race, and nothing decides who loses their place |
 
 **Consequence.** The roster quietly fills with people who would not be allowed to sign up
-today. The `DOES_NOT_HAVE_ALL` case is the one that matters: a lifting restriction added to
-someone's record on Tuesday does not take them off Saturday's dock shift, because nothing
-ever asks again. That is the same safety failure §1.1 is about, arriving by a different
-route — and resolving §1.1 correctly does nothing to prevent it.
+today, and the coordinator who caused it has no idea. The `DOES_NOT_HAVE_ALL` case is the
+one that matters: adding a lifting-restriction exclusion to the warehouse opportunity on
+Tuesday does not take anybody off Saturday's dock shift, because nothing ever asks again.
+That is the same safety failure §1.1 is about, arriving by a different route — and resolving
+§1.1 correctly does nothing to prevent it.
 
-**What it needs.** Re-validation, either when the underlying record changes or as a sweep
-before each shift, plus a product decision about what to *do* with a volunteer who is no
-longer eligible: revoke the place, or flag it to a coordinator to handle as a conversation.
-The second is almost certainly right for a nonprofit, and it is not an engineering call.
+The `maxVolunteers` case is worth separating out because it is not drift at all. It is the
+capacity invariant being broken by a single-user edit, with no concurrency involved, and
+§5.1's fix — a lock on the write path — does nothing about it.
+
+**Why you cannot just re-run `checkEligibility`.** This is the part that has to be designed
+rather than bolted on. `checkEligibility` answers a question about *acquiring* a place, and
+some of its reasons are meaningless once you hold one. Re-running it over existing signups
+would revoke everybody: they are all `ALREADY_SIGNED_UP`, and the ones who filled the last
+places are all `AT_CAPACITY`.
+
+The reason codes split cleanly in two:
+
+- **Acquisition** — `ALREADY_SIGNED_UP`, `AT_CAPACITY`, `WAITLIST_FULL`. About getting a
+  place. Never grounds for losing one.
+- **Continuing** — `SHIFT_NOT_PUBLISHED`, `SHIFT_INACTIVE`, `OPENING_INACTIVE`,
+  `MISSING_QUALIFICATION`, `DISALLOWED_QUALIFICATION`, `WAIVER_REQUIRED`,
+  `GROUP_RESTRICTED`, `SCHEDULE_CONFLICT`. About whether someone should be there at all,
+  which is as true on the day as it was at signup.
+
+The useful accident is that this split falls exactly on one rule boundary: `capacityRule` is
+the only rule that emits acquisition codes, and every other rule emits continuing ones. So
+supporting re-validation is not a second implementation of the rules — it is one scope tag
+on one entry in the registry, and a second entry point that runs the continuing subset. I
+have not built it, because there is no write path here to hang it on, but the shape is
+small and the rules being pure and I/O-free is what keeps it that way.
+
+**The check that would actually help.** Of the three places to put one, only the first
+happens while a human is present to decide:
+
+1. **At edit time, before the change is saved.** Compute the impact and show it: *this
+   change affects 14 confirmed volunteers, 3 of whom would no longer be eligible* — with the
+   three named. That turns a silent breakage into a decision, which is the whole point.
+2. **A sweep before each shift**, re-running the continuing rules over its confirmed
+   signups, to catch drift from the volunteer side that no opportunity edit triggered.
+3. **A guard on capacity specifically**, refusing to lower `maxVolunteers` below the
+   confirmed count without the admin choosing who comes off.
+
+None of that says what to *do* with someone who is no longer eligible. Revoke, flag to a
+coordinator, or grandfather them is a product decision, and it probably differs by reason —
+auto-revoking a safety exclusion is defensible where auto-revoking a lapsed waiver is not.
+Because the rules are already separate functions, that policy can live per rule rather than
+in one branching statement.
+
+Whatever is chosen, the edit and the revocations it caused belong in the same audit record;
+see §5.7.
 
 ### 5.6 The browse answer is stale before it is rendered
 
@@ -476,7 +531,12 @@ In the order I would want them answered:
    write time? See §5. If nothing does, that is a larger problem than either contradiction
    in §1.
 7. When a volunteer's qualifications, waivers, or group membership change *after* they are
-   confirmed for a shift, should the place be revoked, flagged, or left alone?
+   confirmed for a shift, should the place be revoked, flagged, or left alone? Same question
+   when a coordinator edits the opportunity underneath them — see §5.5. Does the answer
+   differ by reason? Auto-revoking a safety exclusion is defensible where auto-revoking a
+   lapsed waiver probably is not.
+8. Can a coordinator lower `maxVolunteers` below the number already confirmed, and if so who
+   decides which volunteers lose their place?
 
 ---
 
