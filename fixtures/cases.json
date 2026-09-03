@@ -1,0 +1,14 @@
+[
+  { "name": "unpublished shift", "volunteerId": "vol-001", "openingId": "open-meals-draft-server", "expected": { "status": "BLOCKED", "reasons": ["SHIFT_NOT_PUBLISHED"] } },
+  { "name": "cancelled shift", "volunteerId": "vol-001", "openingId": "open-meals-cancelled-server", "expected": { "status": "BLOCKED", "reasons": ["SHIFT_INACTIVE"] } },
+  { "name": "retired opening", "volunteerId": "vol-002", "openingId": "open-meals-tue-retired", "expected": { "status": "BLOCKED", "reasons": ["OPENING_INACTIVE"] } },
+  { "name": "already signed up", "volunteerId": "vol-002", "openingId": "open-meals-mon-am-server", "expected": { "status": "BLOCKED", "reasons": ["ALREADY_SIGNED_UP"] } },
+  { "name": "full with no waitlist", "volunteerId": "vol-001", "openingId": "open-meals-tue-full", "expected": { "status": "BLOCKED", "reasons": ["AT_CAPACITY"] } },
+  { "name": "full with waitlist room", "volunteerId": "vol-001", "openingId": "open-meals-tue-server", "expected": { "status": "WAITLIST", "reasons": [] } },
+  { "name": "fully eligible", "volunteerId": "vol-001", "openingId": "open-meals-mon-pm-server", "expected": { "status": "ELIGIBLE", "reasons": [] } },
+  { "name": "missing qualification and waiver", "volunteerId": "vol-003", "openingId": "open-meals-mon-pm-server", "expected": { "status": "BLOCKED", "reasons": ["MISSING_QUALIFICATION", "WAIVER_REQUIRED"] } },
+  { "name": "waiver signed at an older version", "volunteerId": "vol-006", "openingId": "open-meals-mon-pm-server", "expected": { "status": "BLOCKED", "reasons": ["WAIVER_REQUIRED"] } },
+  { "name": "holds one of the accepted qualifications", "volunteerId": "vol-007", "openingId": "open-warehouse-mon-loader", "expected": { "status": "ELIGIBLE", "reasons": [] } },
+  { "name": "holds none of the accepted qualifications", "volunteerId": "vol-008", "openingId": "open-warehouse-mon-loader", "expected": { "status": "BLOCKED", "reasons": ["MISSING_QUALIFICATION"] } },
+  { "name": "overlapping shift", "volunteerId": "vol-004", "openingId": "open-warehouse-mon-loader", "expected": { "status": "BLOCKED", "reasons": ["SCHEDULE_CONFLICT"] } }
+]

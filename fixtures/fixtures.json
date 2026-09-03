@@ -1,0 +1,252 @@
+{
+  "organizations": [
+    { "id": "org-1", "name": "Riverside Community Kitchen" }
+  ],
+  "qualifications": [
+    { "id": "qual-food-safety", "name": "Food Safety Certification" },
+    { "id": "qual-background-check", "name": "Background Check" },
+    { "id": "qual-forklift", "name": "Forklift Operation" },
+    { "id": "qual-first-aid", "name": "First Aid" },
+    { "id": "qual-minor", "name": "Under 18" },
+    { "id": "qual-lifting-restriction", "name": "Lifting Restriction On File" },
+    { "id": "qual-drivers-license", "name": "Valid Driver's License" }
+  ],
+  "groups": [
+    { "id": "group-acme", "name": "Acme Corp Volunteer Team" },
+    { "id": "group-youth", "name": "Youth Program Participants" }
+  ],
+  "waivers": [
+    { "id": "waiver-general", "name": "General Liability Waiver", "currentVersion": 2 },
+    { "id": "waiver-kitchen", "name": "Kitchen Safety Waiver", "currentVersion": 1 }
+  ],
+  "volunteers": [
+    {
+      "id": "vol-001",
+      "name": "Avery Chen",
+      "qualificationIds": ["qual-food-safety", "qual-background-check"],
+      "signedWaivers": [{ "waiverId": "waiver-general", "version": 2 }],
+      "groupIds": ["group-acme"]
+    },
+    {
+      "id": "vol-002",
+      "name": "Brook Mensah",
+      "qualificationIds": ["qual-food-safety", "qual-background-check", "qual-first-aid"],
+      "signedWaivers": [
+        { "waiverId": "waiver-general", "version": 2 },
+        { "waiverId": "waiver-kitchen", "version": 1 }
+      ],
+      "groupIds": []
+    },
+    {
+      "id": "vol-003",
+      "name": "Casey Nkemelu",
+      "qualificationIds": [],
+      "signedWaivers": [],
+      "groupIds": []
+    },
+    {
+      "id": "vol-004",
+      "name": "Devi Raman",
+      "qualificationIds": ["qual-drivers-license"],
+      "signedWaivers": [{ "waiverId": "waiver-general", "version": 2 }],
+      "groupIds": ["group-acme"]
+    },
+    {
+      "id": "vol-005",
+      "name": "Elliot Vance",
+      "qualificationIds": ["qual-minor"],
+      "signedWaivers": [{ "waiverId": "waiver-general", "version": 2 }],
+      "groupIds": ["group-youth"]
+    },
+    {
+      "id": "vol-006",
+      "name": "Fern Okonjo",
+      "qualificationIds": ["qual-food-safety", "qual-lifting-restriction", "qual-drivers-license"],
+      "signedWaivers": [{ "waiverId": "waiver-general", "version": 1 }],
+      "groupIds": []
+    },
+    {
+      "id": "vol-007",
+      "name": "Gray Lindqvist",
+      "qualificationIds": ["qual-forklift", "qual-drivers-license", "qual-background-check"],
+      "signedWaivers": [{ "waiverId": "waiver-general", "version": 2 }],
+      "groupIds": []
+    },
+    {
+      "id": "vol-008",
+      "name": "Hana Bergstrom",
+      "qualificationIds": ["qual-background-check", "qual-first-aid"],
+      "signedWaivers": [{ "waiverId": "waiver-general", "version": 2 }],
+      "groupIds": []
+    }
+  ],
+  "opportunities": [
+    {
+      "id": "opp-meals",
+      "organizationId": "org-1",
+      "name": "Weekly Meal Service",
+      "city": "Indianapolis",
+      "requiredWaiverId": "waiver-general",
+      "restrictedToGroupIds": [],
+      "qualificationRules": [
+        {
+          "id": "rule-meals-1",
+          "type": "HAS_ALL",
+          "qualificationIds": ["qual-food-safety"],
+          "isActive": true
+        }
+      ]
+    },
+    {
+      "id": "opp-warehouse",
+      "organizationId": "org-1",
+      "name": "Warehouse Sort and Load",
+      "city": "Denver",
+      "requiredWaiverId": null,
+      "restrictedToGroupIds": [],
+      "qualificationRules": [
+        {
+          "id": "rule-warehouse-1",
+          "type": "HAS_ANY",
+          "qualificationIds": ["qual-forklift", "qual-drivers-license"],
+          "isActive": true
+        },
+        {
+          "id": "rule-warehouse-2",
+          "type": "DOES_NOT_HAVE_ALL",
+          "qualificationIds": ["qual-minor", "qual-lifting-restriction"],
+          "isActive": true
+        }
+      ]
+    },
+    {
+      "id": "opp-youth",
+      "organizationId": "org-1",
+      "name": "After-School Youth Mentoring",
+      "city": "Indianapolis",
+      "requiredWaiverId": "waiver-general",
+      "restrictedToGroupIds": [],
+      "qualificationRules": [
+        {
+          "id": "rule-youth-1",
+          "type": "HAS_ALL",
+          "qualificationIds": [],
+          "isActive": true
+        }
+      ]
+    },
+    {
+      "id": "opp-kitchen",
+      "organizationId": "org-1",
+      "name": "Kitchen Deep Clean",
+      "city": "Indianapolis",
+      "requiredWaiverId": "waiver-kitchen",
+      "restrictedToGroupIds": ["group-acme"],
+      "qualificationRules": []
+    }
+  ],
+  "shifts": [
+    {
+      "id": "shift-meals-mon-am",
+      "opportunityId": "opp-meals",
+      "title": "Monday Lunch Prep",
+      "startsAt": "2026-09-14T09:00:00",
+      "endsAt": "2026-09-14T12:00:00",
+      "isPublished": true,
+      "isActive": true
+    },
+    {
+      "id": "shift-meals-mon-pm",
+      "opportunityId": "opp-meals",
+      "title": "Monday Lunch Service",
+      "startsAt": "2026-09-14T12:00:00",
+      "endsAt": "2026-09-14T15:00:00",
+      "isPublished": true,
+      "isActive": true
+    },
+    {
+      "id": "shift-meals-tue",
+      "opportunityId": "opp-meals",
+      "title": "Tuesday Lunch Service",
+      "startsAt": "2026-09-15T11:00:00",
+      "endsAt": "2026-09-15T14:00:00",
+      "isPublished": true,
+      "isActive": true
+    },
+    {
+      "id": "shift-meals-draft",
+      "opportunityId": "opp-meals",
+      "title": "Wednesday Lunch Service",
+      "startsAt": "2026-09-16T11:00:00",
+      "endsAt": "2026-09-16T14:00:00",
+      "isPublished": false,
+      "isActive": true
+    },
+    {
+      "id": "shift-meals-cancelled",
+      "opportunityId": "opp-meals",
+      "title": "Thursday Lunch Service",
+      "startsAt": "2026-09-17T11:00:00",
+      "endsAt": "2026-09-17T14:00:00",
+      "isPublished": true,
+      "isActive": false
+    },
+    {
+      "id": "shift-warehouse-mon",
+      "opportunityId": "opp-warehouse",
+      "title": "Monday Sort",
+      "startsAt": "2026-09-14T11:00:00",
+      "endsAt": "2026-09-14T15:00:00",
+      "isPublished": true,
+      "isActive": true
+    },
+    {
+      "id": "shift-warehouse-mon-late",
+      "opportunityId": "opp-warehouse",
+      "title": "Monday Evening Load",
+      "startsAt": "2026-09-14T14:00:00",
+      "endsAt": "2026-09-14T18:00:00",
+      "isPublished": true,
+      "isActive": true
+    },
+    {
+      "id": "shift-youth-tue",
+      "opportunityId": "opp-youth",
+      "title": "Tuesday Mentoring",
+      "startsAt": "2026-09-15T15:30:00",
+      "endsAt": "2026-09-15T17:30:00",
+      "isPublished": true,
+      "isActive": true
+    },
+    {
+      "id": "shift-kitchen-sat",
+      "opportunityId": "opp-kitchen",
+      "title": "Saturday Deep Clean",
+      "startsAt": "2026-09-19T08:00:00",
+      "endsAt": "2026-09-19T12:00:00",
+      "isPublished": true,
+      "isActive": true
+    }
+  ],
+  "openings": [
+    { "id": "open-meals-mon-am-server", "shiftId": "shift-meals-mon-am", "roleName": "Prep Cook", "maxVolunteers": 4, "waitlistMax": 2, "isActive": true },
+    { "id": "open-meals-mon-pm-server", "shiftId": "shift-meals-mon-pm", "roleName": "Server", "maxVolunteers": 4, "waitlistMax": 2, "isActive": true },
+    { "id": "open-meals-tue-server", "shiftId": "shift-meals-tue", "roleName": "Server", "maxVolunteers": 2, "waitlistMax": 2, "isActive": true },
+    { "id": "open-meals-tue-full", "shiftId": "shift-meals-tue", "roleName": "Dishwasher", "maxVolunteers": 1, "waitlistMax": 0, "isActive": true },
+    { "id": "open-meals-draft-server", "shiftId": "shift-meals-draft", "roleName": "Server", "maxVolunteers": 4, "waitlistMax": 0, "isActive": true },
+    { "id": "open-meals-cancelled-server", "shiftId": "shift-meals-cancelled", "roleName": "Server", "maxVolunteers": 4, "waitlistMax": 0, "isActive": true },
+    { "id": "open-meals-tue-retired", "shiftId": "shift-meals-tue", "roleName": "Greeter", "maxVolunteers": 2, "waitlistMax": 0, "isActive": false },
+    { "id": "open-warehouse-mon-loader", "shiftId": "shift-warehouse-mon", "roleName": "Loader", "maxVolunteers": 6, "waitlistMax": 0, "isActive": true },
+    { "id": "open-warehouse-mon-late-loader", "shiftId": "shift-warehouse-mon-late", "roleName": "Loader", "maxVolunteers": 6, "waitlistMax": 0, "isActive": true },
+    { "id": "open-youth-tue-mentor", "shiftId": "shift-youth-tue", "roleName": "Mentor", "maxVolunteers": 5, "waitlistMax": 0, "isActive": true },
+    { "id": "open-kitchen-sat-cleaner", "shiftId": "shift-kitchen-sat", "roleName": "Cleaner", "maxVolunteers": 3, "waitlistMax": 0, "isActive": true }
+  ],
+  "signups": [
+    { "volunteerId": "vol-002", "openingId": "open-meals-mon-am-server", "state": "CONFIRMED" },
+    { "volunteerId": "vol-008", "openingId": "open-meals-tue-full", "state": "CONFIRMED" },
+    { "volunteerId": "vol-002", "openingId": "open-meals-tue-server", "state": "CONFIRMED" },
+    { "volunteerId": "vol-006", "openingId": "open-meals-tue-server", "state": "CONFIRMED" },
+    { "volunteerId": "vol-003", "openingId": "open-meals-tue-server", "state": "WAITLISTED" },
+    { "volunteerId": "vol-004", "openingId": "open-warehouse-mon-late-loader", "state": "CONFIRMED" }
+  ]
+}
